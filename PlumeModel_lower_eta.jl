@@ -756,11 +756,8 @@ function plume_model(options::Dict;max_step::Int64=-1,max_time::Float64=-1.0)
             dC = zeros(grid.ny+1,grid.nx+1)
         end
         
-        if itime > 20 && total_melt_ecl > 0.0 && !reset_temperature || time >= 1.5e8*seconds_in_year && !reset_temperature
-            # when melting begins, re-assimilate the temperature in the lithosphere.
-            # only do this once.
+		if total_melt_ecl+total_melt_pyr <= 1e-16 && time <= 3.6e8*seconds_in_year
             reassimilate_lithosphere!(markers,options)
-            reset_temperature = true
         end
 
         compute_boundary_heat_flow(grid,Tnew,kThermal)
