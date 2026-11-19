@@ -1,5 +1,5 @@
 # Define options and parse command-line arguments:
-if length( ARGS ) < 3
+if length( ARGS ) < 5
     error("specify eclogite layer thickness (m), excess temperature (K), lithosphere thickness (m), ecl frac, total time (yr)")
 else
     ecl_h = parse( Float64, ARGS[1] )
@@ -27,7 +27,7 @@ options["mantle temperature"] = 1300.0 + 273.0
 options["plot interval field"] = 5e6*seconds_in_year
 options["plot interval marker"] = 5e7*seconds_in_year
 options["melting plot interval"] = 2e6*seconds_in_year
-options["output directory"] = "plume_" * string(ecl_h) * "_" * string(Tex) * "_" * string(h)
+options["output directory"] = "/nfs/peloton/waltz/rudolphlab/mpi-io-DOES-NOT-WORK-ON-HIVE/qxl51/plume-melt/" * "plume_" * string(ecl_h) * "_" * string(Tex) * "_" * string(h)
 options["max time"] = time_total*seconds_in_year
 options["max step"] = -1
 options["method"] = "lookup"
@@ -756,12 +756,16 @@ function plume_model(options::Dict;max_step::Int64=-1,max_time::Float64=-1.0)
             dC = zeros(grid.ny+1,grid.nx+1)
         end
         
-        if itime > 20 && total_melt_ecl > 0.0 && !reset_temperature || time >= 1.5e8*seconds_in_year && !reset_temperature
-            # when melting begins, re-assimilate the temperature in the lithosphere.
-            # only do this once.
-            reassimilate_lithosphere!(markers,options)
-            reset_temperature = true
-        end
+#        if itime > 20 && total_melt_ecl+total_melt_pyr > 0.0 && !reset_temperature || time >= 1.5e8*seconds_in_year && !reset_temperature
+#            # when melting begins, re-assimilate the temperature in the lithosphere.
+#            # only do this once.
+#            reassimilate_lithosphere!(markers,options)
+#            reset_temperature = true
+#        end
+
+        if total_melt_ecl+total_melt_pyr <= 1e-16 && time <= 3.6e8*seconds_in_year
+	    reassimilate_lithosphere!(markers,options)
+	end
 
         compute_boundary_heat_flow(grid,Tnew,kThermal)
 
@@ -784,8 +788,9 @@ function plume_model(options::Dict;max_step::Int64=-1,max_time::Float64=-1.0)
             delta_rho, = marker_to_stag(markers,grid,["delta_rho",],"basic");
             Xmelt_pyr, = marker_to_stag(markers,grid,["Xmelt_pyr",],"basic");
 	    Xmelt_ecl, = marker_to_stag(markers,grid,["Xmelt_ecl",],"basic");
+	    X_ecl, = marker_to_stag(markers,grid,markers.integers[[markers.integerFields["material"],],:],"basic");
 	    
-            output_fields = Dict("rho"=>rho_c[2:end-1,2:end-1],"eta"=>eta_s,"velocity"=>vn,"pressure"=>P[2:end-1,2:end-1],"T"=>Tn,"delta_T"=>delta_T,"dXdt_pyr"=>pyr_dXdt[2:end-1,2:end-1],"dXdt_ecl"=>ecl_dXdt[2:end-1,2:end-1],"dC"=>dC[2:end-1,2:end-1],"delta_rho"=>delta_rho)
+            output_fields = Dict("rho"=>rho_c[2:end-1,2:end-1],"eta"=>eta_s,"velocity"=>vn,"pressure"=>P[2:end-1,2:end-1],"T"=>Tn,"delta_T"=>delta_T,"dXdt_pyr"=>pyr_dXdt[2:end-1,2:end-1],"dXdt_ecl"=>ecl_dXdt[2:end-1,2:end-1],"dC"=>dC[2:end-1,2:end-1],"delta_rho"=>delta_rho,"Xmelt_pyr"=>Xmelt_pyr, "Xmelt_ecl"=>Xmelt_ecl, "X_ecl"=>X_ecl)
             @time visualization(grid,output_fields,time/seconds_in_year;filename=name)
             # write dynamic topography
             topo_file = @sprintf("%s/topo.%04d.txt",output_dir,iout_field)

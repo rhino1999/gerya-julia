@@ -203,8 +203,10 @@ function viscosity(eta0::Float64,depth::Float64,T::Float64,E::Float64,Tref::Floa
    R = 8.314 #J/mol/K
    if depth > 6.6e5
       depth_factor =  20.0
-   else
+   elseif depth < 4.1e5
       depth_factor = 0.05
+   else
+      depth_factor = 1
    end
    #depth_factor = viscosity_depth_function(depth)
    # note that eta0 = 5e19 in Leitch and Davies - quite low viscosity.
@@ -752,12 +754,16 @@ function plume_model(options::Dict;max_step::Int64=-1,max_time::Float64=-1.0)
             dC = zeros(grid.ny+1,grid.nx+1)
         end
         
-        if itime > 20 && total_melt_ecl > 0.0 && !reset_temperature || time >= 1.5e8*seconds_in_year && !reset_temperature
-            # when melting begins, re-assimilate the temperature in the lithosphere.
-            # only do this once.
+       # if itime > 20 && total_melt_ecl > 0.0 && !reset_temperature || time >= 1.5e8*seconds_in_year && !reset_temperature
+       #     # when melting begins, re-assimilate the temperature in the lithosphere.
+       #     # only do this once.
+       #     reassimilate_lithosphere!(markers,options)
+       #     reset_temperature = true
+       # end
+
+        if total_melt_ecl <= 1e-15
             reassimilate_lithosphere!(markers,options)
-            reset_temperature = true
-        end
+	end
 
         compute_boundary_heat_flow(grid,Tnew,kThermal)
 

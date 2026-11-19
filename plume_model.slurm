@@ -1,15 +1,15 @@
 #!/bin/bash
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --exclusive
-#SBATCH --mem-per-cpu=16G
-#SBATCH --job-name=plume
-#SBATCH --mail-type=FAIL,TIME_LIMIT
-#SBATCH --mail-user=ayylu@ucdavis.edu
-#SBATCH --partition=high2
-#SBATCH --time=6-00:00:00
-#source /home/qxl51/miniconda3/bin/activate
+#SBATCH --account=rudolphgrp          # SLURM account to use
+#SBATCH --partition=high             # Partition to submit the job
+#SBATCH --time=48:00:00              # Max execution time (24 hours)
+#SBATCH --nodes=1                    # Number of nodes
+#SBATCH --ntasks=1
+#SBATCH --mem=32G                    # amount of memory needed so it can use our nodes
+#SBATCH --job-name=plume-melt      # Job name
+
+#set -x # Enable debug mode (prints commands before executing)
+module load julia
 which python3
 which julia
-julia --threads 64 -- PlumeModel_old_10.jl 150000.0 450.0 120000.5
+srun julia --threads 32 -- PlumeModel_lower_eta.jl 150000.8 450.0 120000.23 0.15 2.4e8
 #julia InstallDependencies.jl
